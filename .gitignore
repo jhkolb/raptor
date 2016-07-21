@@ -1,0 +1,4 @@
+*.swp
+frontend/target
+frontend/.idea
+frontend/project
