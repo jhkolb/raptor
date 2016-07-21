@@ -1,0 +1,33 @@
+entity ~/bosswave/keys/jackDev.ent
+
+spawnpoints { scratch.ns/spawnpoint/alpha, jkolb.ns/spawnpoint/* }
+
+deploy r.cal-sdb.org/demosvc as demosvc with {
+    entity: ~/bosswave/keys/demosvc.ent,
+    memAlloc: 512M,
+    cpuShares: 1024,
+    volumes: [demosvc-store],
+    includedFiles: [params.yml],
+} on alpha
+
+deploy r.cal-sdb.org/enphase-driver as enphase with {
+    entity = enphase.ent,
+    memAlloc = 2G,
+    cpuShares = 2048,
+    includedDirs: [~/enphase],
+} where {
+    owner = culler-mayeno.ns
+}
+
+deploy r.cal-sdb/cellmate as cellmate with {
+    entity = cellmate.ent,
+    memAlloc = 4G,
+    cpuShares = 4096,
+    volumes: [cellmate-db],
+} where {
+    location = "Soda Hall",
+    hasGpu = true
+}
+
+cellmate -> visionDriver -> demosvc
+enphase -> demosvc
