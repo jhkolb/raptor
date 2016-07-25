@@ -30,3 +30,8 @@ container r.cal-sdb/cellmate as cellmate with {
     location = "Soda Hall",
     hasGpu = true
 }
+
+dependencies {
+    cellmate -> visionDriver -> demosvc,
+    enphase -> demosvc,
+}

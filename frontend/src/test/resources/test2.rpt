@@ -2,8 +2,6 @@ entity ~/bosswave/keys/jackDev.ent
 
 spawnpoints [scratch.ns/spawnpoint/alpha, jkolb.ns/spawnpoint/*]
 
-external [vision_driver,]
-
 container r.cal-sdb.org/demosvc as demosvc with {
     entity: ~/bosswave/keys/demosvc.ent,
     memAlloc: 512M,
@@ -29,4 +27,9 @@ container r.cal-sdb/cellmate as cellmate with {
 } where {
     location = "Soda Hall",
     hasGpu = true
+}
+
+dependencies {
+    cellmate -> visionDriver -> demosvc,
+    enphase -> demosvc,
 }

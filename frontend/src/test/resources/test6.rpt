@@ -1,0 +1,8 @@
+entity ~/bosswave/keys/jackDev.ent
+
+spawnpoints [scratch.ns/spawnpoint/alpha, jkolb.ns/spawnpoint/*]
+
+dependencies {
+    cellmate -> visionDriver -> demosvc,
+    enphase -> demosvc,
+}

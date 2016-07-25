@@ -35,6 +35,10 @@ class ConfigParser extends JavaTokenParsers {
   def spawnpointList: Parser[Seq[String]] = "spawnpoints" ~ "[" ~> repsep(URI, ",") <~ opt(",") ~ "]"
 
   def dependencyList: Parser[Seq[String]] = "external" ~ "[" ~> repsep(ident | stringLiteral ^^ (stripQuotes(_)), ",") <~ opt(",") ~ "]"
+  def dependencySpec: Parser[Seq[String]] = opt(dependencyList) ^^ {
+    case None => Seq.empty[String]
+    case Some(deps) => deps
+  }
 
   def spawnpointSpec: Parser[Either[String, Seq[(String, Any)]]] =
       "on" ~> (ident | stringLiteral ^^ (stripQuotes(_))) ^^ (Left(_)) |
@@ -45,8 +49,12 @@ class ConfigParser extends JavaTokenParsers {
 
   def svcPath: Parser[Seq[(String, String)]] = repsep(ident, "->") ^^ (_.sliding(2).toList.map { case Seq(x,y) => (x,y) })
   def svcGraph: Parser[Seq[(String, String)]] = "dependencies" ~ "{" ~> repsep(svcPath, ",") <~ opt(",") ~ "}" ^^ (_.flatten)
+  def svcGraphSpec: Parser[Seq[(String, String)]] = opt(svcGraph) ^^ {
+    case None => Seq.empty[(String, String)]
+    case Some(svcConns) => svcConns
+  }
 
-  def deployment: Parser[Deployment] = entity ~ spawnpointList ~ dependencyList ~ rep(serviceDeployment) ~ svcGraph ^^ {
+  def deployment: Parser[Deployment] = entity ~ spawnpointList ~ dependencySpec ~ rep1(serviceDeployment) ~ svcGraphSpec ^^ {
     case ent ~ spawnpoints ~ dependencies ~ svcs ~ svcConns => Deployment(ent, spawnpoints, dependencies, svcs, svcConns)
   }
 }
