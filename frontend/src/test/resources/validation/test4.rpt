@@ -22,7 +22,6 @@ container r.cal-sdb.org/enphase-driver as enphase with {
 }
 
 container r.cal-sdb/cellmate as cellmate with {
-    entity = cellmate.ent,
     memAlloc = 4G,
     cpuShares = 4096,
     volumes: [cellmate-db],
@@ -32,6 +31,6 @@ container r.cal-sdb/cellmate as cellmate with {
 }
 
 dependencies {
-    cellmate -> visionDriver -> demosvc,
+    cellmate -> vision_driver -> demosvc,
     enphase -> demosvc,
 }

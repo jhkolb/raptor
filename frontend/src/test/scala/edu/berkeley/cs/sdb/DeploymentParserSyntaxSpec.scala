@@ -18,30 +18,30 @@ class DeploymentParserSyntaxSpec extends FunSuite {
   }
 
   test("Minimal config file") {
-    ensureParseSuccess("test0.rpt")
+    ensureParseSuccess("syntax/test0.rpt")
   }
 
   test("Config file with external services") {
-    ensureParseSuccess("test1.rpt")
+    ensureParseSuccess("syntax/test1.rpt")
   }
 
   test("Config file with service graph") {
-    ensureParseSuccess("test2.rpt")
+    ensureParseSuccess("syntax/test2.rpt")
   }
 
   test("Full config file") {
-    ensureParseSuccess("test3.rpt")
+    ensureParseSuccess("syntax/test3.rpt")
   }
 
   test("Config file missing entity") {
-    ensureParseFailure("test4.rpt")
+    ensureParseFailure("syntax/test4.rpt")
   }
 
   test("Config file missing target spawnpoint list") {
-    ensureParseFailure("test5.rpt")
+    ensureParseFailure("syntax/test5.rpt")
   }
 
   test("Config file missing container deployment list") {
-    ensureParseFailure("test6.rpt")
+    ensureParseFailure("syntax/test6.rpt")
   }
 }
