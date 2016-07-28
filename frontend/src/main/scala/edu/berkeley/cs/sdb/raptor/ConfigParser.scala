@@ -1,4 +1,4 @@
-package edu.berkeley.cs.sdb
+package edu.berkeley.cs.sdb.raptor
 
 import scala.util.parsing.combinator._
 

@@ -1,4 +1,4 @@
-package edu.berkeley.cs.sdb
+package edu.berkeley.cs.sdb.raptor
 
 /**
   * A collection of Spawnpoint services that form a cohesive deployment

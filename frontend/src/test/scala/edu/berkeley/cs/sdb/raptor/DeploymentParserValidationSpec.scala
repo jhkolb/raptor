@@ -1,4 +1,4 @@
-package edu.berkeley.cs.sdb
+package edu.berkeley.cs.sdb.raptor
 
 import org.scalatest.FunSuite
 
