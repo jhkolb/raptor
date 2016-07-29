@@ -2,7 +2,7 @@ package edu.berkeley.cs.sdb.raptor
 
 import scala.util.parsing.combinator._
 
-class ConfigParser extends JavaTokenParsers {
+object ConfigParser extends JavaTokenParsers {
   private def stripQuotes(s: String) =
     if (s.startsWith("\"") && s.endsWith("\"")) {
       s.substring(1, s.length - 2)
@@ -61,9 +61,7 @@ class ConfigParser extends JavaTokenParsers {
   def deployment: Parser[Deployment] = entity ~ spawnpointList ~ dependencySpec ~ rep1(serviceDeployment) ~ svcGraphSpec ^^ {
     case ent ~ spawnpoints ~ dependencies ~ svcs ~ svcConns => Deployment(ent, spawnpoints, dependencies, svcs, svcConns)
   }
-}
 
-object ConfigParser {
   private def findMissingParam(paramName: String, services: Seq[Service]): Option[String] = {
     services.find(!_.params.contains(paramName)) match {
       case None => None

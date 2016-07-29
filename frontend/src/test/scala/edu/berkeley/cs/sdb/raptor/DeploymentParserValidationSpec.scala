@@ -5,18 +5,16 @@ import org.scalatest.FunSuite
 import scala.io.Source
 
 class DeploymentParserValidationSpec extends FunSuite {
-  val parser = new ConfigParser
-
   private def ensureValidationSuccess(fileName: String): Unit = {
     val configText = Source.fromURL(getClass.getResource("/" + fileName)).mkString
-    val parsedDep = parser.parseAll(parser.deployment, configText)
+    val parsedDep = ConfigParser.parseAll(ConfigParser.deployment, configText)
     assert(parsedDep.successful)
     assert(ConfigParser.validate(parsedDep.get).isEmpty)
   }
 
   private def ensureValidationFailure(fileName: String): Unit = {
     val configText = Source.fromURL(getClass.getResource("/" + fileName)).mkString
-    val parsedDep = parser.parseAll(parser.deployment, configText)
+    val parsedDep = ConfigParser.parseAll(ConfigParser.deployment, configText)
     assert(ConfigParser.validate(parsedDep.get).isDefined)
   }
 

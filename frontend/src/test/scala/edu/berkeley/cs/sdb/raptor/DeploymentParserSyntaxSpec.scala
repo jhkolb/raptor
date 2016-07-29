@@ -5,16 +5,14 @@ import org.scalatest.FunSuite
 import scala.io.Source
 
 class DeploymentParserSyntaxSpec extends FunSuite {
-  val parser = new ConfigParser
-
   private def ensureParseSuccess(fileName: String) = {
     val configText = Source.fromURL(getClass.getResource("/" + fileName)).mkString
-    assert(parser.parseAll(parser.deployment, configText).successful)
+    assert(ConfigParser.parseAll(ConfigParser.deployment, configText).successful)
   }
 
   private def ensureParseFailure(fileName: String) = {
     val configText = Source.fromURL(getClass.getResource("/" + fileName)).mkString
-    assert(!parser.parseAll(parser.deployment, configText).successful)
+    assert(!ConfigParser.parseAll(ConfigParser.deployment, configText).successful)
   }
 
   test("Minimal config file") {
