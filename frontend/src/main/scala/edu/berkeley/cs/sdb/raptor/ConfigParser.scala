@@ -6,7 +6,7 @@ import scala.util.parsing.combinator._
 object ConfigParser extends JavaTokenParsers {
   private def stripQuotes(s: String) =
     if (s.startsWith("\"") && s.endsWith("\"")) {
-      s.substring(1, s.length - 2)
+      s.substring(1, s.length - 1)
     } else {
       s
     }
