@@ -1,5 +1,9 @@
 *.swp
-frontend/target
 frontend/.idea
-frontend/project/build.properties
-target/
+frontend/project/*
+!frontend/project/*.sbt
+
+frontend/target/*
+!frontend/target/scala-2.11/*
+frontend/target/scala-2.11/*
+!frontend/target/src_managed/*

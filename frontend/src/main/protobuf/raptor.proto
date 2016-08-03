@@ -1,5 +1,12 @@
 syntax = "proto3";
 
+import "scalapb/scalapb.proto";
+
+option (scalapb.options) = {
+    package_name: "edu.berkeley.cs.sdb.raptor"
+    flat_package: true
+};
+
 message Service {
     string name = 1;
     string imageName = 2;
