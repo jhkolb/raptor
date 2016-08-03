@@ -49,4 +49,12 @@ class DeploymentParserValidationSpec extends FunSuite {
   test("Topology references unknown service") {
     ensureValidationFailure("validation/test7.rpt")
   }
+
+  test("Invalid CPU shares specification") {
+    ensureValidationFailure("validation/test8.rpt")
+  }
+
+  test("Invalid memory allocation specification") {
+    ensureValidationFailure("validation/test9.rpt")
+  }
 }
