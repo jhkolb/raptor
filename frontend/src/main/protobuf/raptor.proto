@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+message Service {
+    string name = 1;
+    string imageName = 2;
+    map<string, string> params = 4;
+    string spawnpointName = 5;
+    map<string, string> constraints = 6;
+}
+
+message Link {
+    string src = 1;
+    string dest = 2;
+}
+
+message Deployment {
+    string entity = 1;
+    repeated string spawnpointUris = 2;
+    repeated string externalDeps = 3;
+    repeated Service services = 4;
+    repeated Link topology = 5;
+}
