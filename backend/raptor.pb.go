@@ -13,7 +13,7 @@ It has these top-level messages
 	Link
 	Deployment
 */
-package main
+package backend
 
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"

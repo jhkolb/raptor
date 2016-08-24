@@ -3,3 +3,4 @@ frontend/.idea
 frontend/project/*
 !frontend/project/*.sbt
 frontend/target/*
+raptor

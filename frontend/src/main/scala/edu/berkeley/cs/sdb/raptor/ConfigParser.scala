@@ -18,6 +18,11 @@ object ConfigParser extends JavaTokenParsers {
 
   def memAllocLiteral: Parser[String] = """[0-9]+[MmGg]""".r
 
+  def containerName: Parser[String] = path ~ opt(":" ~ ident) ^^ {
+    case containerPath ~ None => containerPath
+    case containerPath ~ Some(":" ~ tag) => containerPath + ":" + tag
+  }
+
   // The right-hand side of any parameter
   def value: Parser[String] = stringLiteral ^^ (stripQuotes(_)) |
     URI |
@@ -26,7 +31,7 @@ object ConfigParser extends JavaTokenParsers {
     wholeNumber |
     floatingPointNumber
 
-  def valueSequence: Parser[String] = "[" ~> repsep(value, ",") <~ opt(",") ~ "]" ^^ ("[" + _.mkString(", ") + "]")
+  def valueSequence: Parser[String] = "[" ~> repsep(value, ",") <~ opt(",") ~ "]" ^^ (_.mkString(", "))
 
   def parameter: Parser[(String, String)] = ident ~ (":" | "=") ~ (value | ident | valueSequence) ^^ { case k ~ (":" | "=") ~ v => (k, v) }
 
@@ -47,7 +52,7 @@ object ConfigParser extends JavaTokenParsers {
     "on" ~> (ident | stringLiteral ^^ (stripQuotes(_))) ^^ (Left(_)) |
     "where" ~> parameterSequence ^^ (Right(_))
 
-  def serviceDeployment: Parser[Service] = "container" ~ path ~ "as" ~ ident ~ "with" ~ parameterSequence ~ spawnpointSpec ^^
+  def serviceDeployment: Parser[Service] = "container" ~ containerName ~ "as" ~ ident ~ "with" ~ parameterSequence ~ spawnpointSpec ^^
       { case "container" ~ imgName ~ "as" ~ svcName ~ "with" ~ params ~ spec =>
         spec match {
           case Left(spawnpointName) => Service(svcName, imgName, params, spawnpointName, Map.empty[String, String])
