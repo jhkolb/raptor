@@ -40,7 +40,7 @@ func lenientBoolParse(s string) bool {
 	return b
 }
 
-func DeployConfig(configFile string) ([]chan *objects.SPLogMsg, error) {
+func DeployConfig(configFile string, sched Scheduler) ([]chan *objects.SPLogMsg, error) {
 	deployment, err := readProtoFile(configFile)
 	if err != nil {
 		return nil, err
@@ -51,35 +51,43 @@ func DeployConfig(configFile string) ([]chan *objects.SPLogMsg, error) {
 		return nil, err
 	}
 
-	allSpawnpoints := make(map[string]objects.SpawnPoint)
+	allSpawnpoints := make(map[string]spawnpointInfo)
 	for _, uri := range deployment.SpawnpointUris {
 		spawnpoints, err := spawnClient.Scan(uri)
 		if err == nil {
 			for _, spawnpoint := range spawnpoints {
-				allSpawnpoints[spawnpoint.Alias] = spawnpoint
+				allSpawnpoints[spawnpoint.Alias] = spawnpointInfo{SpawnPoint: spawnpoint}
 			}
 		}
 	}
 
-	// Ensure that all service configs reference a valid spawnpoint -- no partial deployments
-	for _, service := range deployment.Services {
-		if _, ok := allSpawnpoints[service.SpawnpointName]; !ok {
-			err = fmt.Errorf("Service %s references unknown spawnpoint %s", service.Name, service.SpawnpointName)
+	for alias, spawnpoint := range allSpawnpoints {
+		_, rawMd, err := spawnClient.Inspect(spawnpoint.URI)
+		if err != nil {
 			return nil, err
 		}
+
+		metadata := make(map[string]string)
+		for key, mdTup := range rawMd {
+			metadata[key] = mdTup.Value
+		}
+		spawnpoint.Metadata = metadata
+		allSpawnpoints[alias] = spawnpoint
 	}
 
-	var logs []chan *objects.SPLogMsg
-	for _, service := range deployment.Services {
+	placement, err := sched.schedule(deployment, allSpawnpoints)
+	if err != nil {
+		return nil, err
+	}
+
+	logs := make([]chan *objects.SPLogMsg, len(placement))
+	for service, spAlias := range placement {
 		build := paramStringToSlice(&service.Params, "build")
 		run := paramStringToSlice(&service.Params, "run")
 		volumes := paramStringToSlice(&service.Params, "volumes")
 		includedDirs := paramStringToSlice(&service.Params, "includedDirs")
 		includedFiles := paramStringToSlice(&service.Params, "includedFiles")
-		cpuShares, err := strconv.ParseUint(service.Params["cpuShares"], 10, 64)
-		if err != nil {
-			return nil, err
-		}
+		cpuShares, _ := strconv.ParseUint(service.Params["cpuShares"], 10, 64)
 
 		config := objects.SvcConfig{
 			ServiceName:   service.Name,
@@ -98,7 +106,7 @@ func DeployConfig(configFile string) ([]chan *objects.SPLogMsg, error) {
 			RestartInt:    service.Params["restartInt"],
 		}
 
-		relevantSp := allSpawnpoints[service.SpawnpointName]
+		relevantSp := allSpawnpoints[spAlias]
 		log, err := spawnClient.DeployService(&config, relevantSp.URI, service.Name)
 		if err != nil {
 			return nil, err

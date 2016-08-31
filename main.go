@@ -53,7 +53,7 @@ func actionSubmit(c *cli.Context) error {
 		os.Exit(1)
 	}
 
-	logs, err := backend.DeployConfig(tempOutputFile)
+	logs, err := backend.DeployConfig(tempOutputFile, new(backend.FirstFitScheduler))
 	os.Remove(tempOutputFile)
 	if err != nil {
 		fmt.Printf("%sDeployment failed: %v%s\n", ansi.ColorCode("red+b"), err, ansi.ColorCode("reset"))
