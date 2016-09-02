@@ -9,6 +9,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/immesys/spawnpoint/objects"
 	"github.com/immesys/spawnpoint/spawnclient"
+	"github.com/satori/go.uuid"
 )
 
 func readProtoFile(name string) (*Deployment, error) {
@@ -45,7 +46,7 @@ func DeployConfig(configFile string, sched Scheduler) ([]chan *objects.SPLogMsg,
 	if err != nil {
 		return nil, err
 	}
-	spawnClient, err := spawnclient.New("127.0.0.1:28589", deployment.Entity)
+	spawnClient, err := spawnclient.New("", deployment.Entity)
 	if err != nil {
 		err = fmt.Errorf("Failed to initialize spawn client: %v", err)
 		return nil, err
@@ -80,6 +81,12 @@ func DeployConfig(configFile string, sched Scheduler) ([]chan *objects.SPLogMsg,
 		return nil, err
 	}
 
+	// Set up overlay network for apps that want to use normal sockets
+	netName := uuid.NewV4().String()
+	if err = createOverlayNet(netName); err != nil {
+		return nil, fmt.Errorf("Failed to create overlay net: %v", err)
+	}
+
 	logs := make([]chan *objects.SPLogMsg, len(placement))
 	for service, spAlias := range placement {
 		build := paramStringToSlice(&service.Params, "build")
@@ -104,6 +111,7 @@ func DeployConfig(configFile string, sched Scheduler) ([]chan *objects.SPLogMsg,
 			IncludedDirs:  includedDirs,
 			AutoRestart:   lenientBoolParse(service.Params["autoRestart"]),
 			RestartInt:    service.Params["restartInt"],
+			OverlayNet:    netName,
 		}
 
 		relevantSp := allSpawnpoints[spAlias]
