@@ -47,9 +47,9 @@ func actionSubmit(c *cli.Context) error {
 		os.Exit(1)
 	}
 
-	cmd := exec.Command("scala", parserLocation, inputFile, tempOutputFile)
-	if err := cmd.Run(); err != nil {
-		fmt.Println("Failed to parse config file")
+	output, err := exec.Command("scala", parserLocation, inputFile, tempOutputFile).Output()
+	if err != nil {
+		fmt.Print(string(output))
 		os.Exit(1)
 	}
 

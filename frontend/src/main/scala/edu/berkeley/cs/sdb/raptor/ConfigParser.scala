@@ -52,11 +52,26 @@ object ConfigParser extends JavaTokenParsers {
     "on" ~> (ident | stringLiteral ^^ (stripQuotes(_))) ^^ (Left(_)) |
     "where" ~> parameterSequence ^^ (Right(_))
 
-  def serviceDeployment: Parser[Service] = "container" ~ containerName ~ "as" ~ ident ~ "with" ~ parameterSequence ~ spawnpointSpec ^^
+  def serviceDeployment: Parser[Seq[Service]] = "container" ~ containerName ~ "as" ~ ident ~ "with" ~ parameterSequence ~ spawnpointSpec ^^
       { case "container" ~ imgName ~ "as" ~ svcName ~ "with" ~ params ~ spec =>
         spec match {
-          case Left(spawnpointName) => Service(svcName, imgName, params, spawnpointName, Map.empty[String, String])
-          case Right(spawnpointParams) => Service(svcName, imgName, params, "", spawnpointParams)
+          case Left(spawnpointName) => Seq(Service(svcName, imgName, params, spawnpointName, Map.empty[String, String]))
+          case Right(spawnpointParams) => Seq(Service(svcName, imgName, params, "", spawnpointParams))
+        }
+      }
+
+  def forComprehension: Parser[Seq[Service]] = "for" ~ ident ~ "in" ~ "[" ~ rep1sep(value, ",") ~ "]" ~ "{" ~ serviceDeployment ~ "}" ^^
+      { case "for" ~ varName ~ "in" ~ "[" ~ varValues ~  "]" ~ "{" ~ Seq(service) ~ "}" => varValues.zipWithIndex.map { case (varValue, idx) =>
+          val svcName = if (service.name.contains(varName)) {
+            service.name.replace(varName, varValue)
+          } else {
+            service.name + idx.toString
+          }
+          val imageName = service.imageName.replace(varName, varValue)
+          val params = service.params.map { case (k, v) => (k, v.replace(varName, varValue)) }
+          val spawnpointName = service.spawnpointName.replace(varName, varValue)
+          val constraints = service.constraints.map { case (k, v) => (k, v.replace(varName, varValue)) }
+          Service(svcName, imageName, params, spawnpointName, constraints)
         }
       }
 
@@ -69,9 +84,11 @@ object ConfigParser extends JavaTokenParsers {
     case Some(links) => links
   }
 
-  def deployment: Parser[Deployment] = entity ~ spawnpointList ~ dependencySpec ~ rep1(serviceDeployment) ~ svcGraphSpec ^^ {
-    case ent ~ spawnpoints ~ dependencies ~ svcs ~ svcConns => Deployment(ent, spawnpoints, dependencies, svcs, svcConns)
+  def deployment: Parser[Deployment] = entity ~ spawnpointList ~ dependencySpec ~ rep1(serviceDeployment | forComprehension) ~ svcGraphSpec ^^ {
+    case ent ~ spawnpoints ~ dependencies ~ svcs ~ svcConns =>
+      Deployment(ent, spawnpoints, dependencies, svcs.flatten, svcConns)
   }
+
 
   private def findMissingParam(paramName: String, services: Seq[Service]): Option[String] = {
     services.find(!_.params.contains(paramName)) match {

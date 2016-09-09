@@ -16,10 +16,12 @@ object ExecParser {
     ConfigParser.parseAll(ConfigParser.deployment, rawInput) match {
       case ConfigParser.Failure(msg, _) =>
         println("Syntax error in config file: " + msg)
+        System.exit(1)
       case ConfigParser.Success(deployment, _) =>
         ConfigParser.validate(deployment) match {
           case Some(err) =>
             println("Invalid configuration file: " + err)
+            System.exit(1)
           case None =>
             val outputFile = new File(args(1))
             val fos = new FileOutputStream(outputFile)

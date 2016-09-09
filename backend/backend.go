@@ -83,9 +83,6 @@ func DeployConfig(configFile string, sched Scheduler) ([]chan *objects.SPLogMsg,
 
 	// Set up overlay network for apps that want to use normal sockets
 	netName := uuid.NewV4().String()
-	if err = createOverlayNet(netName); err != nil {
-		return nil, fmt.Errorf("Failed to create overlay net: %v", err)
-	}
 
 	logs := make([]chan *objects.SPLogMsg, len(placement))
 	for service, spAlias := range placement {
