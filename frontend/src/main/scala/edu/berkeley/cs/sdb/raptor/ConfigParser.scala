@@ -4,6 +4,8 @@ import scala.util.Try
 import scala.util.parsing.combinator._
 
 object ConfigParser extends JavaTokenParsers {
+  case class VarReference(name: String)
+
   private def stripQuotes(s: String) =
     if (s.startsWith("\"") && s.endsWith("\"")) {
       s.substring(1, s.length - 1)
@@ -12,47 +14,47 @@ object ConfigParser extends JavaTokenParsers {
     }
 
   // Primitives used to specify deployment options or parameters
-  def path: Parser[String] = """(/|~/)?([a-zA-Z\._\-]+/)*[a-zA-Z\._\-]+""".r
+  def Path: Parser[String] = """(/|~/)?([a-zA-Z\._\-]+/)*[a-zA-Z\._\-]+""".r
 
   def URI: Parser[String] = """([a-zA-Z\._\-]+/)*[a-zA-Z\._\-]+(/\*|/\+)?""".r
 
-  def memAllocLiteral: Parser[String] = """[0-9]+[MmGg]""".r
+  def MemAllocLiteral: Parser[String] = """[0-9]+[MmGg]""".r
 
-  def containerName: Parser[String] = path ~ opt(":" ~ ident) ^^ {
+  def ContainerName: Parser[String] = Path ~ opt(":" ~ ident) ^^ {
     case containerPath ~ None => containerPath
     case containerPath ~ Some(":" ~ tag) => containerPath + ":" + tag
   }
 
   // The right-hand side of any parameter
-  def value: Parser[String] = stringLiteral ^^ (stripQuotes(_)) |
+  def Value: Parser[String] = stringLiteral ^^ (stripQuotes(_)) |
     URI |
-    path |
-    memAllocLiteral |
+    Path |
+    MemAllocLiteral |
     wholeNumber |
     floatingPointNumber
 
-  def valueSequence: Parser[String] = "[" ~> repsep(value, ",") <~ opt(",") ~ "]" ^^ (_.mkString(", "))
+  def ValueSequence: Parser[String] = "[" ~> repsep(Value, ",") <~ opt(",") ~ "]" ^^ (_.mkString(", "))
 
-  def parameter: Parser[(String, String)] = ident ~ (":" | "=") ~ (value | ident | valueSequence) ^^ { case k ~ (":" | "=") ~ v => (k, v) }
+  def Parameter: Parser[(String, String)] = ident ~ (":" | "=") ~ (Value | ident | ValueSequence) ^^ { case k ~ (":" | "=") ~ v => (k, v) }
 
-  def parameterSequence: Parser[Map[String, String]] = "{" ~> repsep(parameter, ",") <~ opt(",") ~ "}" ^^ (_.toMap)
+  def ParameterSequence: Parser[Map[String, String]] = "{" ~> repsep(Parameter, ",") <~ opt(",") ~ "}" ^^ (_.toMap)
 
-  def entity: Parser[String] = "entity" ~> path
+  def Entity: Parser[String] = "entity" ~> Path
 
-  def spawnpointList: Parser[Seq[String]] = "spawnpoints" ~ "[" ~> repsep(URI, ",") <~ opt(",") ~ "]"
+  def SpawnpointList: Parser[Seq[String]] = "spawnpoints" ~ "[" ~> repsep(URI, ",") <~ opt(",") ~ "]"
 
-  def dependencyList: Parser[Seq[String]] = "external" ~ "[" ~> repsep(ident | stringLiteral ^^ (stripQuotes(_)), ",") <~ opt(",") ~ "]"
+  def DependencyList: Parser[Seq[String]] = "external" ~ "[" ~> repsep(ident | stringLiteral ^^ (stripQuotes(_)), ",") <~ opt(",") ~ "]"
 
-  def dependencySpec: Parser[Seq[String]] = opt(dependencyList) ^^ {
+  def DependencySpec: Parser[Seq[String]] = opt(DependencyList) ^^ {
     case None => Seq.empty[String]
     case Some(deps) => deps
   }
 
-  def spawnpointSpec: Parser[Either[String, Map[String, String]]] =
+  def SpawnpointSpec: Parser[Either[String, Map[String, String]]] =
     "on" ~> (ident | stringLiteral ^^ (stripQuotes(_))) ^^ (Left(_)) |
-    "where" ~> parameterSequence ^^ (Right(_))
+    "where" ~> ParameterSequence ^^ (Right(_))
 
-  def serviceDeployment: Parser[Seq[Service]] = "container" ~ containerName ~ "as" ~ ident ~ "with" ~ parameterSequence ~ spawnpointSpec ^^
+  def ServiceDeployment: Parser[Seq[Service]] = "container" ~ ContainerName ~ "as" ~ ident ~ "with" ~ ParameterSequence ~ SpawnpointSpec ^^
       { case "container" ~ imgName ~ "as" ~ svcName ~ "with" ~ params ~ spec =>
         spec match {
           case Left(spawnpointName) => Seq(Service(svcName, imgName, params, spawnpointName, Map.empty[String, String]))
@@ -60,31 +62,32 @@ object ConfigParser extends JavaTokenParsers {
         }
       }
 
-  def forComprehension: Parser[Seq[Service]] = "for" ~ ident ~ "in" ~ "[" ~ rep1sep(value, ",") ~ "]" ~ "{" ~ serviceDeployment ~ "}" ^^
+  def ForComprehension: Parser[Seq[Service]] = "for" ~ ident ~ "in" ~ "[" ~ rep1sep(Value, ",") ~ "]" ~ "{" ~ ServiceDeployment ~ "}" ^^
       { case "for" ~ varName ~ "in" ~ "[" ~ varValues ~  "]" ~ "{" ~ Seq(service) ~ "}" => varValues.zipWithIndex.map { case (varValue, idx) =>
-          val svcName = if (service.name.contains(varName)) {
-            service.name.replace(varName, varValue)
+          val varReference = "${" + varName + "}"
+          val svcName = if (service.name.contains(varReference)) {
+            service.name.replace(varReference, varValue)
           } else {
             service.name + idx.toString
           }
-          val imageName = service.imageName.replace(varName, varValue)
-          val params = service.params.map { case (k, v) => (k, v.replace(varName, varValue)) }
-          val spawnpointName = service.spawnpointName.replace(varName, varValue)
-          val constraints = service.constraints.map { case (k, v) => (k, v.replace(varName, varValue)) }
+          val imageName = service.imageName.replace(varReference, varValue)
+          val params = service.params.map { case (k, v) => (k, v.replace(varReference, varValue)) }
+          val spawnpointName = service.spawnpointName.replace(varReference, varValue)
+          val constraints = service.constraints.map { case (k, v) => (k, v.replace(varReference, varValue)) }
           Service(svcName, imageName, params, spawnpointName, constraints)
         }
       }
 
-  def svcPath: Parser[Seq[Link]] = repsep(ident, "->") ^^ (_.sliding(2).map { case Seq(x, y) => Link(x, y) }.toSeq)
+  def SvcPath: Parser[Seq[Link]] = repsep(ident, "->") ^^ (_.sliding(2).map { case Seq(x, y) => Link(x, y) }.toSeq)
 
-  def svcGraph: Parser[Seq[Link]] = "dependencies" ~ "{" ~> repsep(svcPath, ",") <~ opt(",") ~ "}" ^^ (_.flatten)
+  def SvcGraph: Parser[Seq[Link]] = "dependencies" ~ "{" ~> repsep(SvcPath, ",") <~ opt(",") ~ "}" ^^ (_.flatten)
 
-  def svcGraphSpec: Parser[Seq[Link]] = opt(svcGraph) ^^ {
+  def SvcGraphSpec: Parser[Seq[Link]] = opt(SvcGraph) ^^ {
     case None => Seq.empty[Link]
     case Some(links) => links
   }
 
-  def deployment: Parser[Deployment] = entity ~ spawnpointList ~ dependencySpec ~ rep1(serviceDeployment | forComprehension) ~ svcGraphSpec ^^ {
+  def DeploymentConfig: Parser[Deployment] = Entity ~ SpawnpointList ~ DependencySpec ~ rep1(ServiceDeployment | ForComprehension) ~ SvcGraphSpec ^^ {
     case ent ~ spawnpoints ~ dependencies ~ svcs ~ svcConns =>
       Deployment(ent, spawnpoints, dependencies, svcs.flatten, svcConns)
   }

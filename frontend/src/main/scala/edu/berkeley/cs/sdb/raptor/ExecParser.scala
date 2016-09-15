@@ -13,7 +13,7 @@ object ExecParser {
 
     val inputFileName = args(0)
     val rawInput = Source.fromFile(inputFileName).mkString
-    ConfigParser.parseAll(ConfigParser.deployment, rawInput) match {
+    ConfigParser.parseAll(ConfigParser.DeploymentConfig, rawInput) match {
       case ConfigParser.Failure(msg, _) =>
         println("Syntax error in config file: " + msg)
         System.exit(1)

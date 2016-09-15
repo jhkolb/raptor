@@ -7,14 +7,14 @@ import scala.io.Source
 class DeploymentParserValidationSpec extends FunSuite {
   private def ensureValidationSuccess(fileName: String): Unit = {
     val configText = Source.fromURL(getClass.getResource("/" + fileName)).mkString
-    val parsedDep = ConfigParser.parseAll(ConfigParser.deployment, configText)
+    val parsedDep = ConfigParser.parseAll(ConfigParser.DeploymentConfig, configText)
     assert(parsedDep.successful)
     assert(ConfigParser.validate(parsedDep.get).isEmpty)
   }
 
   private def ensureValidationFailure(fileName: String): Unit = {
     val configText = Source.fromURL(getClass.getResource("/" + fileName)).mkString
-    val parsedDep = ConfigParser.parseAll(ConfigParser.deployment, configText)
+    val parsedDep = ConfigParser.parseAll(ConfigParser.DeploymentConfig, configText)
     assert(ConfigParser.validate(parsedDep.get).isDefined)
   }
 

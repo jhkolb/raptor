@@ -7,12 +7,12 @@ import scala.io.Source
 class DeploymentParserSyntaxSpec extends FunSuite {
   private def ensureParseSuccess(fileName: String) = {
     val configText = Source.fromURL(getClass.getResource("/" + fileName)).mkString
-    assert(ConfigParser.parseAll(ConfigParser.deployment, configText).successful)
+    assert(ConfigParser.parseAll(ConfigParser.DeploymentConfig, configText).successful)
   }
 
   private def ensureParseFailure(fileName: String) = {
     val configText = Source.fromURL(getClass.getResource("/" + fileName)).mkString
-    assert(!ConfigParser.parseAll(ConfigParser.deployment, configText).successful)
+    assert(!ConfigParser.parseAll(ConfigParser.DeploymentConfig, configText).successful)
   }
 
   test("Minimal config file") {
