@@ -1,0 +1,19 @@
+entity ~/bosswave/keys/jackDev.ent
+
+spawnpoints [scratch.ns/spawnpoint/alpha, jkolb.ns/spawnpoint/*]
+
+external [vision_driver,]
+
+for name in [alpha, beta, gamma, delta, epsilon] {
+    container jhkolb/spawnpoint:amd64 as ${name} with {
+        entity: ~/bosswave/keys/demosvc.ent,
+        memAlloc: 512M,
+        cpuShares: 1024,
+        includedFiles: [params.yml],
+    } on pandora
+}
+
+dependencies {
+    cellmate -> vision_driver -> demosvc,
+    enphase -> demosvc,
+}

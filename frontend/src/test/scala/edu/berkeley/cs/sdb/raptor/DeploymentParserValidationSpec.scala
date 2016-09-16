@@ -57,4 +57,16 @@ class DeploymentParserValidationSpec extends FunSuite {
   test("Invalid memory allocation specification") {
     ensureValidationFailure("validation/test9.rpt")
   }
+
+  test("Config file with useless for comprehension") {
+    ensureValidationSuccess("validation/test10.rpt")
+  }
+
+  test("Config file with for comprehension influencing param value") {
+    ensureValidationSuccess("validation/test11.rpt")
+  }
+
+  test("Config file with reference to undefined variable") {
+    ensureValidationFailure("validation/test12.rpt")
+  }
 }

@@ -20,18 +20,22 @@ object ConfigParser extends JavaTokenParsers {
 
   def MemAllocLiteral: Parser[String] = """[0-9]+[MmGg]""".r
 
-  def ContainerName: Parser[String] = Path ~ opt(":" ~ ident) ^^ {
+  def ImageName: Parser[String] = Path ~ opt(":" ~ ident) ^^ {
     case containerPath ~ None => containerPath
     case containerPath ~ Some(":" ~ tag) => containerPath + ":" + tag
   }
 
-  // The right-hand side of any parameter
+  def simpleName: Parser[String] = """[a-zA-Z0-9]+""".r
+
+  def VarSubstitution: Parser[String] = """[a-zA-Z0-9\._\-]*\$\{[a-zA-Z0-9]+\}[a-zA-Z0-9\._\-]*""".r
+
   def Value: Parser[String] = stringLiteral ^^ (stripQuotes(_)) |
     URI |
     Path |
     MemAllocLiteral |
     wholeNumber |
-    floatingPointNumber
+    floatingPointNumber |
+    VarSubstitution
 
   def ValueSequence: Parser[String] = "[" ~> repsep(Value, ",") <~ opt(",") ~ "]" ^^ (_.mkString(", "))
 
@@ -51,10 +55,10 @@ object ConfigParser extends JavaTokenParsers {
   }
 
   def SpawnpointSpec: Parser[Either[String, Map[String, String]]] =
-    "on" ~> (ident | stringLiteral ^^ (stripQuotes(_))) ^^ (Left(_)) |
+    "on" ~> (simpleName | VarSubstitution) ^^ (Left(_)) |
     "where" ~> ParameterSequence ^^ (Right(_))
 
-  def ServiceDeployment: Parser[Seq[Service]] = "container" ~ ContainerName ~ "as" ~ ident ~ "with" ~ ParameterSequence ~ SpawnpointSpec ^^
+  def ServiceDeployment: Parser[Seq[Service]] = "container" ~ ImageName ~ "as" ~ (simpleName | VarSubstitution) ~ "with" ~ ParameterSequence ~ SpawnpointSpec ^^
       { case "container" ~ imgName ~ "as" ~ svcName ~ "with" ~ params ~ spec =>
         spec match {
           case Left(spawnpointName) => Seq(Service(svcName, imgName, params, spawnpointName, Map.empty[String, String]))
@@ -104,6 +108,17 @@ object ConfigParser extends JavaTokenParsers {
     memAlloc.matches("\\d+[MmGg]")
   }
 
+  private def extractContainerVars(s: Service): Seq[String] = {
+    val varPattern = """\$\{[a-zA_Z0-9]+\}""".r
+    val nameVar = varPattern.findFirstIn(s.name)
+    val imageNameVar = varPattern.findFirstIn(s.imageName)
+    val spawnpointNameVar = varPattern.findFirstIn(s.spawnpointName)
+    val paramVars = s.params.values.map(varPattern.findFirstIn(_))
+    val constraintVars = s.constraints.values.map(varPattern.findFirstIn(_))
+
+    Seq(nameVar, imageNameVar, spawnpointNameVar).flatten ++ paramVars.flatten ++ constraintVars.flatten
+  }
+
   def validate(deployment: Deployment): Option[String] = {
     val noEntName = findMissingParam("entity", deployment.services)
     if (noEntName.isDefined) {
@@ -134,6 +149,11 @@ object ConfigParser extends JavaTokenParsers {
     }
     if (unknownLink.isDefined) {
       return Some(s"Dependency ${unknownLink.get.src} -> ${unknownLink.get.dest} references unknown service")
+    }
+
+    val undefinedVars = deployment.services.flatMap(extractContainerVars(_))
+    if (undefinedVars.nonEmpty) {
+      return Some(s"Variable ${undefinedVars.head} is not defined")
     }
     None
   }

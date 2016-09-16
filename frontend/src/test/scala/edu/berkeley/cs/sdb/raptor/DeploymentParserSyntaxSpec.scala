@@ -42,4 +42,20 @@ class DeploymentParserSyntaxSpec extends FunSuite {
   test("Config file missing container deployment list") {
     ensureParseFailure("syntax/test6.rpt")
   }
+
+  test("Config file with useless for comprehension") {
+    ensureParseSuccess("syntax/test7.rpt")
+  }
+
+  test("Config file with for comprehension influencing param value") {
+    ensureParseSuccess("syntax/test8.rpt")
+  }
+
+  test("Config file with for comprehension influencing container name") {
+    ensureParseSuccess("syntax/test9.rpt")
+  }
+
+  test("Config file with for comprehension influencing destination") {
+    ensureParseSuccess("syntax/test10.rpt")
+  }
 }
