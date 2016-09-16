@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/codegangsta/cli"
 	"github.com/immesys/spawnpoint/objects"
 	"github.com/jhkolb/raptor/backend"
 	"github.com/mgutz/ansi"
+	"github.com/urfave/cli"
 )
 
 const parserLocation = "frontend/target/scala-2.11/raptor-frontend-assembly-0.1.jar"
@@ -20,7 +20,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "raptor"
 	app.Usage = "Configuration manager for Spawnpoint deployments"
-	app.Version = "0.0.1 'Aviary'"
+	app.Version = "0.0.2 'Aviary'"
 
 	app.Commands = []cli.Command{
 		{
@@ -43,8 +43,12 @@ func main() {
 func actionSubmit(c *cli.Context) error {
 	inputFile := c.String("input")
 	if inputFile == "" {
-		fmt.Println("Missing 'input' parameter")
-		os.Exit(1)
+		if len(c.Args()) > 0 {
+			inputFile = c.Args()[0]
+		} else {
+			fmt.Println("Missing 'input' parameter")
+			os.Exit(1)
+		}
 	}
 
 	output, err := exec.Command("scala", parserLocation, inputFile, tempOutputFile).Output()

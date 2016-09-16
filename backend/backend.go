@@ -9,7 +9,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/immesys/spawnpoint/objects"
 	"github.com/immesys/spawnpoint/spawnclient"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 func readProtoFile(name string) (*Deployment, error) {
@@ -57,7 +57,9 @@ func DeployConfig(configFile string, sched Scheduler) ([]chan *objects.SPLogMsg,
 		spawnpoints, err := spawnClient.Scan(uri)
 		if err == nil {
 			for _, spawnpoint := range spawnpoints {
-				allSpawnpoints[spawnpoint.Alias] = spawnpointInfo{SpawnPoint: spawnpoint}
+				if spawnpoint.Good() {
+					allSpawnpoints[spawnpoint.Alias] = spawnpointInfo{SpawnPoint: spawnpoint}
+				}
 			}
 		}
 	}
@@ -96,7 +98,7 @@ func DeployConfig(configFile string, sched Scheduler) ([]chan *objects.SPLogMsg,
 		config := objects.SvcConfig{
 			ServiceName:   service.Name,
 			Entity:        service.Params["entity"],
-			Container:     service.ImageName,
+			Image:         service.ImageName,
 			Build:         build,
 			Source:        service.Params["source"],
 			AptRequires:   service.Params["aptRequires"],

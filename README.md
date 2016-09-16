@@ -92,10 +92,10 @@ for <variable name> in [<var value 1>, <var value 2>, ...] {
 }
 ```
 
-Inside the container block, any occurrence of the loop variable is replaced with
-each of the values inside the value list, producing one distinct container for
-each value. For example, to easily deploy two instances of `demosvc` on
-Spawnpoints `alpha` and `beta`:
+Inside the container block, any occurrence of the loop variable (escaped with a
+`$` and enclosing braces) is replaced with each of the values inside the value
+list producing one distinct container for each value. For example, to easily
+deploy two instances of `demosvc` on Spawnpoints `alpha` and `beta`:
 ```
 for dest in [alpha, beta] {
   container jhkolb/spawnpoint:amd64 as demosvc with {
@@ -106,7 +106,7 @@ for dest in [alpha, beta] {
       memAlloc: 512M,
       cpuShares: 1024,
       includedFiles: [params.yml],
-  } on dest
+  } on ${dest}
 }
 ```
 Note that the container name will be slightly modified if necessary within a
@@ -114,7 +114,19 @@ Note that the container name will be slightly modified if necessary within a
 numerical index to each container's name. The preceding `for` comprehension
 will emit containers named `demsovc1` and `demosvc2`.
 
-## tl;dr Putting it all Together
+You may also embed variables in larger strings inside `for` comprehensions. For
+example:
+```
+for str in [eapolis, essota] {
+  container jhkolb/spawnpoint:amd64 as minn${str}Svc with {
+    ...
+  } on alpha
+}
+```
+This deploys two containers, named `minneapolisSvc` and `minnesotaSvc` on
+Spawnpoint `alpha`.
+
+### tl;dr Putting it all Together
 Here is a full example configuration file.
 ```
 entity /home/oski/bosswave/keys/appDev.ent
@@ -140,3 +152,19 @@ for dest in [beta, gamma] {
   } on dest
 }
 ```
+
+## Deploying an Application
+Once you have written a Raptor DSL configuration, you are ready to launch your
+application. Parsing a configuration file and launching the necessary Spawnpoint
+containers is the job of the `raptor` binary.
+
+Given a Raptor configuration file named `deploy.rpt`, execute the command
+```
+$ raptor submit -i deploy.rpt
+```
+to submit your configuration to they system and launch your application. At this
+point, you may see a (hopefully descriptive) error message if your configuration
+file does not pass the validation process.
+
+Otherwise, as with Spawnpoint, the `raptor` utility will tail the logs for all
+containers included in your application until `<Ctrl>-C` is pressed.
