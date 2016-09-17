@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"regexp"
 	"strconv"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/immesys/spawnpoint/objects"
@@ -72,7 +73,9 @@ func DeployConfig(configFile string, sched Scheduler) ([]chan *objects.SPLogMsg,
 
 		metadata := make(map[string]string)
 		for key, mdTup := range rawMd {
-			metadata[key] = mdTup.Value
+			if time.Now().Sub(time.Unix(0, mdTup.Timestamp)) < objects.MetdataCutoff {
+				metadata[key] = mdTup.Value
+			}
 		}
 		spawnpoint.Metadata = metadata
 		allSpawnpoints[alias] = spawnpoint
