@@ -153,6 +153,17 @@ for dest in [beta, gamma] {
 }
 ```
 
+## Building the `Raptor` Binary
+Building the `raptor` command line tool is slightly complicated as it involves
+both Scala and Go. You will need to have Go, Scala, and Sbt installed in order
+to build `raptor` from source.
+
+Luckily, we have automated the build process with a simple Makefile. After
+cloning this Git repository, run `make` from its root directory. This will
+invoke `sbt` to compile the frontend DSL parser and `go build` to compile the
+Go backend and command-line tool. Upon successful completion, you should see a
+`raptor` binary file in your directory.
+
 ## Deploying an Application
 Once you have written a Raptor DSL configuration, you are ready to launch your
 application. Parsing a configuration file and launching the necessary Spawnpoint
@@ -162,7 +173,7 @@ Given a Raptor configuration file named `deploy.rpt`, execute the command
 ```
 $ raptor submit -i deploy.rpt
 ```
-to submit your configuration to they system and launch your application. At this
+to submit your configuration to the system and launch your application. At this
 point, you may see a (hopefully descriptive) error message if your configuration
 file does not pass the validation process.
 
