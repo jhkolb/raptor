@@ -13,7 +13,7 @@ import (
 	"github.com/urfave/cli"
 )
 
-const parserLocation = "frontend/target/scala-2.11/raptor-frontend-assembly-0.1.jar"
+const parserLocation = "frontend/target/scala-2.11/frontend.jar"
 const tempOutputFile = "temp.protobuf"
 
 func main() {
@@ -51,9 +51,14 @@ func actionSubmit(c *cli.Context) error {
 		}
 	}
 
-	output, err := exec.Command("scala", parserLocation, inputFile, tempOutputFile).Output()
+	rawOutput, err := exec.Command("scala", parserLocation, inputFile, tempOutputFile).Output()
+	output := string(rawOutput)
 	if err != nil {
-		fmt.Print(string(output))
+		if output != "" {
+			fmt.Print(output)
+		} else {
+			fmt.Println(err)
+		}
 		os.Exit(1)
 	}
 
