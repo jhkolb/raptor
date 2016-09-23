@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -51,7 +52,9 @@ func actionSubmit(c *cli.Context) error {
 		}
 	}
 
-	rawOutput, err := exec.Command("scala", parserLocation, inputFile, tempOutputFile).Output()
+	inputFileLoc, _ := filepath.Abs(expandTilde(inputFile))
+
+	rawOutput, err := exec.Command("scala", parserLocation, inputFileLoc, tempOutputFile).Output()
 	output := string(rawOutput)
 	if err != nil {
 		if output != "" {
@@ -85,4 +88,9 @@ func tailLog(log chan *objects.SPLogMsg) {
 		fmt.Printf("[%s] %s%s::%s > %s%s\n", tstring, ansi.ColorCode("blue+b"), logMsg.SPAlias,
 			logMsg.Service, ansi.ColorCode("reset"), strings.Trim(logMsg.Contents, "\n"))
 	}
+}
+
+func expandTilde(path string) string {
+	homeDir := os.Getenv("HOME")
+	return strings.Replace(path, "~", homeDir, -1)
 }

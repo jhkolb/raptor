@@ -88,6 +88,7 @@ func DeployConfig(configFile string, sched Scheduler) ([]chan *objects.SPLogMsg,
 
 	// Set up overlay network for apps that want to use normal sockets
 	netName := uuid.NewV4().String()
+	// TODO: By leaving this up to Spawnd instances, there is a race condition
 
 	logs := make([]chan *objects.SPLogMsg, len(placement))
 	for service, spAlias := range placement {

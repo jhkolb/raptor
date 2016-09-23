@@ -17,6 +17,8 @@ object ExecParser {
       case ConfigParser.Failure(msg, _) =>
         println("Syntax error in config file: " + msg)
         System.exit(1)
+      case ConfigParser.Error(msg, _)   =>
+        println("Config parser error: " + msg)
       case ConfigParser.Success(deployment, _) =>
         ConfigParser.validate(deployment) match {
           case Some(err) =>
