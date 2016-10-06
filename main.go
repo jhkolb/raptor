@@ -65,7 +65,7 @@ func actionSubmit(c *cli.Context) error {
 		os.Exit(1)
 	}
 
-	logs, err := backend.DeployConfig(tempOutputFile, new(backend.FirstFitScheduler))
+	logs, err := backend.DeployConfig(tempOutputFile, new(backend.FirstFitScheduler), true)
 	os.Remove(tempOutputFile)
 	if err != nil {
 		fmt.Printf("%sDeployment failed: %v%s\n", ansi.ColorCode("red+b"), err, ansi.ColorCode("reset"))
@@ -84,9 +84,7 @@ func actionSubmit(c *cli.Context) error {
 
 func tailLog(log chan *objects.SPLogMsg) {
 	for logMsg := range log {
-		tstring := time.Unix(0, logMsg.Time).Format("01/02 15:04:05")
-		fmt.Printf("[%s] %s%s::%s > %s%s\n", tstring, ansi.ColorCode("blue+b"), logMsg.SPAlias,
-			logMsg.Service, ansi.ColorCode("reset"), strings.Trim(logMsg.Contents, "\n"))
+		backend.PrintLogMsg(logMsg)
 	}
 }
 

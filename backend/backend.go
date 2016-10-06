@@ -1,10 +1,12 @@
 package backend
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -12,6 +14,9 @@ import (
 	"github.com/immesys/spawnpoint/spawnclient"
 	uuid "github.com/satori/go.uuid"
 )
+
+const successPrefix = "[SUCCESS]"
+const failurePrefix = "[FAILURE]"
 
 func readProtoFile(name string) (*Deployment, error) {
 	rawBytes, err := ioutil.ReadFile(name)
@@ -42,7 +47,7 @@ func lenientBoolParse(s string) bool {
 	return b
 }
 
-func DeployConfig(configFile string, sched Scheduler) ([]chan *objects.SPLogMsg, error) {
+func DeployConfig(configFile string, sched Scheduler, printMsgs bool) ([]chan *objects.SPLogMsg, error) {
 	deployment, err := readProtoFile(configFile)
 	if err != nil {
 		return nil, err
@@ -73,7 +78,7 @@ func DeployConfig(configFile string, sched Scheduler) ([]chan *objects.SPLogMsg,
 
 		metadata := make(map[string]string)
 		for key, mdTup := range rawMd {
-			if time.Now().Sub(time.Unix(0, mdTup.Timestamp)) < objects.MetdataCutoff {
+			if time.Now().Sub(time.Unix(0, mdTup.Timestamp)) < objects.MetadataCutoff {
 				metadata[key] = mdTup.Value
 			}
 		}
@@ -85,13 +90,15 @@ func DeployConfig(configFile string, sched Scheduler) ([]chan *objects.SPLogMsg,
 	if err != nil {
 		return nil, err
 	}
+	ordering := topologicalSort(deployment)
 
 	// Set up overlay network for apps that want to use normal sockets
 	netName := uuid.NewV4().String()
 	// TODO: By leaving this up to Spawnd instances, there is a race condition
 
 	logs := make([]chan *objects.SPLogMsg, len(placement))
-	for service, spAlias := range placement {
+	for _, service := range ordering {
+		spAlias := placement[service]
 		build := paramStringToSlice(&service.Params, "build")
 		run := paramStringToSlice(&service.Params, "run")
 		volumes := paramStringToSlice(&service.Params, "volumes")
@@ -122,8 +129,57 @@ func DeployConfig(configFile string, sched Scheduler) ([]chan *objects.SPLogMsg,
 		if err != nil {
 			return nil, err
 		}
-
+		for msg := range log {
+			if printMsgs {
+				PrintLogMsg(msg)
+			}
+			if strings.HasPrefix(msg.Contents, successPrefix) {
+				break
+			} else if strings.HasPrefix(msg.Contents, failurePrefix) {
+				errMsg := msg.Contents[strings.Index(msg.Contents, "]")+2:]
+				return nil, errors.New(errMsg)
+			}
+		}
 		logs = append(logs, log)
 	}
 	return logs, nil
+}
+
+func topologicalSort(deployment *Deployment) [](*Service) {
+	var orderingByName []string
+	adjList := createAdjacencyList(deployment.Topology)
+	visited := make(map[string]bool)
+	for srcNode := range *adjList {
+		if !visited[srcNode] {
+			visit(srcNode, adjList, &visited, &orderingByName)
+		}
+	}
+
+	services := make(map[string]*Service)
+	finalOrdering := make([](*Service), len(orderingByName))
+	for _, service := range deployment.Services {
+		services[service.Name] = service
+	}
+	for i, name := range orderingByName {
+		finalOrdering[i] = services[name]
+	}
+	return finalOrdering
+}
+
+func createAdjacencyList(links [](*Link)) *map[string]([]string) {
+	adjList := make(map[string]([]string))
+	for _, link := range links {
+		adjList[link.Src] = append(adjList[link.Src], link.Dest)
+	}
+	return &adjList
+}
+
+func visit(node string, adjList *map[string]([]string), visited *map[string]bool, ordering *[]string) {
+	if !(*visited)[node] {
+		(*visited)[node] = true
+		for _, dest := range (*adjList)[node] {
+			visit(dest, adjList, visited, ordering)
+		}
+		*ordering = append(*ordering, node)
+	}
 }
