@@ -12,11 +12,14 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/immesys/spawnpoint/objects"
 	"github.com/immesys/spawnpoint/spawnclient"
+	"github.com/mgutz/ansi"
 	uuid "github.com/satori/go.uuid"
 )
 
 const successPrefix = "[SUCCESS]"
 const failurePrefix = "[FAILURE]"
+
+const serviceCutoff = 10 * time.Second
 
 func readProtoFile(name string) (*Deployment, error) {
 	rawBytes, err := ioutil.ReadFile(name)
@@ -59,6 +62,7 @@ func DeployConfig(configFile string, sched Scheduler, printMsgs bool) ([]chan *o
 	}
 
 	allSpawnpoints := make(map[string]spawnpointInfo)
+	existingServices := make(map[string]string)
 	for _, uri := range deployment.SpawnpointUris {
 		spawnpoints, err := spawnClient.Scan(uri)
 		if err == nil {
@@ -71,7 +75,7 @@ func DeployConfig(configFile string, sched Scheduler, printMsgs bool) ([]chan *o
 	}
 
 	for alias, spawnpoint := range allSpawnpoints {
-		_, rawMd, err := spawnClient.Inspect(spawnpoint.URI)
+		svcs, rawMd, err := spawnClient.Inspect(spawnpoint.URI)
 		if err != nil {
 			return nil, err
 		}
@@ -84,6 +88,13 @@ func DeployConfig(configFile string, sched Scheduler, printMsgs bool) ([]chan *o
 		}
 		spawnpoint.Metadata = metadata
 		allSpawnpoints[alias] = spawnpoint
+
+		for _, service := range svcs {
+			if time.Now().Sub(service.LastSeen) < serviceCutoff {
+				hostAlias := service.HostURI[strings.LastIndex(service.HostURI, "/")+1:]
+				existingServices[service.Name] = hostAlias
+			}
+		}
 	}
 
 	placement, err := sched.schedule(deployment, allSpawnpoints)
@@ -98,6 +109,13 @@ func DeployConfig(configFile string, sched Scheduler, printMsgs bool) ([]chan *o
 
 	logs := make([]chan *objects.SPLogMsg, len(placement))
 	for _, service := range ordering {
+		alias, ok := existingServices[service.Name]
+		if ok {
+			fmt.Printf("%sService %s is already running on spawnpoint \"%s\", skipping deployment%s\n",
+				ansi.ColorCode("yellow+b"), service.Name, alias, ansi.ColorCode("reset"))
+			continue
+		}
+
 		spAlias := placement[service]
 		build := paramStringToSlice(&service.Params, "build")
 		run := paramStringToSlice(&service.Params, "run")

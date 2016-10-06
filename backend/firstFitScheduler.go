@@ -32,10 +32,10 @@ func (sched *FirstFitScheduler) schedule(deployment *Deployment,
 				return nil, fmt.Errorf("Service %s references unkonwn spawnpoint %s", service.Name, service.SpawnpointName)
 			} else if relevantSp.AvailableCPUShares < int64(cpuShares) {
 				return nil, fmt.Errorf("Insufficient CPU shares on Spawnpoint %s for service %s (want %d, have %d)",
-					service.Name, service.SpawnpointName, cpuShares, relevantSp.AvailableCPUShares)
+					service.SpawnpointName, service.Name, cpuShares, relevantSp.AvailableCPUShares)
 			} else if relevantSp.AvailableMem < int64(memAlloc) {
 				return nil, fmt.Errorf("Insufficient memory on Spawnpoint %s for service %s (want %d, have %d)",
-					service.Name, service.SpawnpointName, memAlloc, relevantSp.AvailableMem)
+					service.SpawnpointName, service.Name, memAlloc, relevantSp.AvailableMem)
 			}
 
 			placements[service] = relevantSp.Alias
