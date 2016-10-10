@@ -55,6 +55,14 @@ func DeployConfig(configFile string, sched Scheduler, printMsgs bool) ([]chan *o
 	if err != nil {
 		return nil, err
 	}
+	// Use top-level entity as default if one isn't specified for a service
+	for _, service := range deployment.Services {
+		_, ok := service.Params["entity"]
+		if !ok {
+			service.Params["entity"] = deployment.Entity
+		}
+	}
+
 	spawnClient, err := spawnclient.New("", deployment.Entity)
 	if err != nil {
 		err = fmt.Errorf("Failed to initialize spawn client: %v", err)

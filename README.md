@@ -41,8 +41,10 @@ elements:
 * A name for the container (this must be unique)
 * Spawnpoint configuration parameters such as BOSSWAVE entity, the command to
   run upon container start, etc. You *must* include the memory allocation
-  (`memAlloc`) and CPU share (`cpuShares`) parameters. See Spawnpoint's
-  documentation for a complete list of parameters.
+  (`memAlloc`) and CPU share (`cpuShares`) parameters. If you do not specify an
+  `entity` parameter here, it defaults to the value of the top-level entity
+  described above. See Spawnpoint's documentation for a complete list of
+  parameters.
 * Either an alias specifically identifying the Spawnpoint on which the container
   should run or a list of metadata constraints that must be satisfied in order
   for a Spawnpoint to be eligible to run the container.

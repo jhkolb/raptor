@@ -34,10 +34,6 @@ class DeploymentParserValidationSpec extends FunSuite {
     ensureValidationSuccess("validation/test3.rpt")
   }
 
-  test("Service missing entity parameter") {
-    ensureValidationFailure("validation/test4.rpt")
-  }
-
   test("Service missing memAlloc parameter") {
     ensureValidationFailure("validation/test5.rpt")
   }

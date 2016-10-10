@@ -120,11 +120,6 @@ object ConfigParser extends JavaTokenParsers {
   }
 
   def validate(deployment: Deployment): Option[String] = {
-    val noEntName = findMissingParam("entity", deployment.services)
-    if (noEntName.isDefined) {
-      return Some("Description of service " + noEntName.get + " does not specify entity")
-    }
-
     val noMemName = findMissingParam("memAlloc", deployment.services)
     if (noMemName.isDefined) {
       return Some("Description of service " + noMemName.get + " does not specify memory allocation")
