@@ -25,7 +25,7 @@ object ConfigParser extends JavaTokenParsers {
     case containerPath ~ Some(":" ~ tag) => containerPath + ":" + tag
   }
 
-  def simpleName: Parser[String] = """[a-zA-Z0-9]+""".r
+  def simpleName: Parser[String] = """[a-zA-Z0-9_]+""".r
 
   def VarSubstitution: Parser[String] = """[a-zA-Z0-9\._\-]*\$\{[a-zA-Z0-9]+\}[a-zA-Z0-9\._\-]*""".r
 

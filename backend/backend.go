@@ -188,6 +188,12 @@ func topologicalSort(deployment *Deployment) [](*Service) {
 	}
 	for i, name := range orderingByName {
 		finalOrdering[i] = services[name]
+		delete(services, name)
+	}
+
+	// Some services may not have been included in the dependency graph
+	for _, service := range services {
+		finalOrdering = append(finalOrdering, service)
 	}
 	return finalOrdering
 }
