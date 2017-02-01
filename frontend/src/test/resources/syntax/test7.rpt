@@ -1,5 +1,3 @@
-entity ~/bosswave/keys/jackDev.ent
-
 spawnpoints [scratch.ns/spawnpoint/alpha, jkolb.ns/spawnpoint/*]
 
 external [vision_driver,]

@@ -1,5 +1,3 @@
-entity ~/bosswave/keys/jackDev.ent
-
 external [vision_driver,]
 
 container r.cal-sdb.org/demosvc as demosvc with {

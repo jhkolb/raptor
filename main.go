@@ -21,7 +21,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "raptor"
 	app.Usage = "Configuration manager for Spawnpoint deployments"
-	app.Version = "0.0.2 'Aviary'"
+	app.Version = "0.0.3 'Aviary'"
 
 	app.Commands = []cli.Command{
 		{
@@ -34,6 +34,11 @@ func main() {
 					Usage: "set the input configuration file",
 					Value: "",
 				},
+				cli.StringFlag{
+					Name:   "entity, e",
+					Usage:  "set the entity key file",
+					EnvVar: "BW2_DEFAULT_ENTITY",
+				},
 			},
 		},
 	}
@@ -42,14 +47,16 @@ func main() {
 }
 
 func actionSubmit(c *cli.Context) error {
+	entityFile := c.String("entity")
+	if entityFile == "" {
+		fmt.Println("Missing 'entity' parameter")
+		os.Exit(1)
+	}
+
 	inputFile := c.String("input")
 	if inputFile == "" {
-		if len(c.Args()) > 0 {
-			inputFile = c.Args()[0]
-		} else {
-			fmt.Println("Missing 'input' parameter")
-			os.Exit(1)
-		}
+		fmt.Println("Missing 'input' parameter")
+		os.Exit(1)
 	}
 
 	inputFileLoc, _ := filepath.Abs(expandTilde(inputFile))
@@ -65,7 +72,7 @@ func actionSubmit(c *cli.Context) error {
 		os.Exit(1)
 	}
 
-	logs, err := backend.DeployConfig(tempOutputFile, new(backend.FirstFitScheduler), true)
+	logs, err := backend.DeployConfig(entityFile, tempOutputFile, new(backend.FirstFitScheduler), true)
 	os.Remove(tempOutputFile)
 	if err != nil {
 		fmt.Printf("%sDeployment failed: %v%s\n", ansi.ColorCode("red+b"), err, ansi.ColorCode("reset"))

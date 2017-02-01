@@ -31,10 +31,6 @@ class DeploymentParserSyntaxSpec extends FunSuite {
     ensureParseSuccess("syntax/test3.rpt")
   }
 
-  test("Config file missing entity") {
-    ensureParseFailure("syntax/test4.rpt")
-  }
-
   test("Config file missing target spawnpoint list") {
     ensureParseFailure("syntax/test5.rpt")
   }

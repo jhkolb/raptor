@@ -50,7 +50,7 @@ func lenientBoolParse(s string) bool {
 	return b
 }
 
-func DeployConfig(configFile string, sched Scheduler, printMsgs bool) ([]chan *objects.SPLogMsg, error) {
+func DeployConfig(entity string, configFile string, sched Scheduler, printMsgs bool) ([]chan *objects.SPLogMsg, error) {
 	deployment, err := readProtoFile(configFile)
 	if err != nil {
 		return nil, err
@@ -59,11 +59,11 @@ func DeployConfig(configFile string, sched Scheduler, printMsgs bool) ([]chan *o
 	for _, service := range deployment.Services {
 		_, ok := service.Params["entity"]
 		if !ok {
-			service.Params["entity"] = deployment.Entity
+			service.Params["entity"] = entity
 		}
 	}
 
-	spawnClient, err := spawnclient.New("", deployment.Entity)
+	spawnClient, err := spawnclient.New("", entity)
 	if err != nil {
 		err = fmt.Errorf("Failed to initialize spawn client: %v", err)
 		return nil, err
@@ -138,7 +138,6 @@ func DeployConfig(configFile string, sched Scheduler, printMsgs bool) ([]chan *o
 			Image:         service.ImageName,
 			Build:         build,
 			Source:        service.Params["source"],
-			AptRequires:   service.Params["aptRequires"],
 			Run:           run,
 			MemAlloc:      service.Params["memAlloc"],
 			CPUShares:     cpuShares,
@@ -151,7 +150,7 @@ func DeployConfig(configFile string, sched Scheduler, printMsgs bool) ([]chan *o
 		}
 
 		relevantSp := allSpawnpoints[spAlias]
-		log, err := spawnClient.DeployService(&config, relevantSp.URI, service.Name)
+		log, err := spawnClient.DeployService(service.asString(), &config, relevantSp.URI, service.Name)
 		if err != nil {
 			return nil, err
 		}

@@ -14,3 +14,11 @@ func PrintLogMsg(logMsg *objects.SPLogMsg) {
 	fmt.Printf("[%s] %s%s::%s > %s%s\n", tstring, ansi.ColorCode("blue+b"), logMsg.SPAlias,
 		logMsg.Service, ansi.ColorCode("reset"), strings.Trim(logMsg.Contents, "\n"))
 }
+
+func (svc *Service) asString() string {
+	s := "Image: " + svc.ImageName
+	for k, v := range svc.Params {
+		s += fmt.Sprintf("\n%s: %s", k, v)
+	}
+	return s
+}

@@ -43,8 +43,6 @@ object ConfigParser extends JavaTokenParsers {
 
   def ParameterSequence: Parser[Map[String, String]] = "{" ~> repsep(Parameter, ",") <~ opt(",") ~ "}" ^^ (_.toMap)
 
-  def Entity: Parser[String] = "entity" ~> Path
-
   def SpawnpointList: Parser[Seq[String]] = "spawnpoints" ~ "[" ~> repsep(URI, ",") <~ opt(",") ~ "]"
 
   def DependencyList: Parser[Seq[String]] = "external" ~ "[" ~> repsep(ident | stringLiteral ^^ (stripQuotes(_)), ",") <~ opt(",") ~ "]"
@@ -91,9 +89,9 @@ object ConfigParser extends JavaTokenParsers {
     case Some(links) => links
   }
 
-  def DeploymentConfig: Parser[Deployment] = Entity ~ SpawnpointList ~ DependencySpec ~ rep1(ServiceDeployment | ForComprehension) ~ SvcGraphSpec ^^ {
-    case ent ~ spawnpoints ~ dependencies ~ svcs ~ svcConns =>
-      Deployment(ent, spawnpoints, dependencies, svcs.flatten, svcConns)
+  def DeploymentConfig: Parser[Deployment] = SpawnpointList ~ DependencySpec ~ rep1(ServiceDeployment | ForComprehension) ~ SvcGraphSpec ^^ {
+    case spawnpoints ~ dependencies ~ svcs ~ svcConns =>
+      Deployment(spawnpoints, dependencies, svcs.flatten, svcConns)
   }
 
 
