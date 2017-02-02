@@ -61,7 +61,7 @@ func actionSubmit(c *cli.Context) error {
 
 	inputFileLoc, _ := filepath.Abs(expandTilde(inputFile))
 
-	rawOutput, err := exec.Command("scala", parserLocation, inputFileLoc, tempOutputFile).Output()
+	rawOutput, err := exec.Command("scala", parserLocation, inputFileLoc, tempOutputFile).CombinedOutput()
 	output := string(rawOutput)
 	if err != nil {
 		if output != "" {
