@@ -50,10 +50,10 @@ func lenientBoolParse(s string) bool {
 	return b
 }
 
-func DeployConfig(entity string, configFile string, sched Scheduler, printMsgs bool) ([]chan *objects.SPLogMsg, error) {
+func DeployConfig(entity string, configFile string, sched Scheduler) error {
 	deployment, err := readProtoFile(configFile)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	// Use top-level entity as default if one isn't specified for a service
 	for _, service := range deployment.Services {
@@ -66,7 +66,7 @@ func DeployConfig(entity string, configFile string, sched Scheduler, printMsgs b
 	spawnClient, err := spawnclient.New("", entity)
 	if err != nil {
 		err = fmt.Errorf("Failed to initialize spawn client: %v", err)
-		return nil, err
+		return err
 	}
 
 	allSpawnpoints := make(map[string]spawnpointInfo)
@@ -85,7 +85,7 @@ func DeployConfig(entity string, configFile string, sched Scheduler, printMsgs b
 	for alias, spawnpoint := range allSpawnpoints {
 		svcs, rawMd, err := spawnClient.Inspect(spawnpoint.URI)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		metadata := make(map[string]string)
@@ -107,7 +107,7 @@ func DeployConfig(entity string, configFile string, sched Scheduler, printMsgs b
 
 	placement, err := sched.schedule(deployment, allSpawnpoints)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	ordering := topologicalSort(deployment)
 
@@ -115,7 +115,6 @@ func DeployConfig(entity string, configFile string, sched Scheduler, printMsgs b
 	netName := uuid.NewV4().String()
 	// TODO: By leaving this up to Spawnd instances, there is a race condition
 
-	logs := make([]chan *objects.SPLogMsg, len(placement))
 	for _, service := range ordering {
 		alias, ok := existingServices[service.Name]
 		if ok {
@@ -152,22 +151,24 @@ func DeployConfig(entity string, configFile string, sched Scheduler, printMsgs b
 		relevantSp := allSpawnpoints[spAlias]
 		log, err := spawnClient.DeployService(service.asString(), &config, relevantSp.URI, service.Name)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		for msg := range log {
-			if printMsgs {
-				PrintLogMsg(msg)
-			}
+			PrintLogMsg(msg)
 			if strings.HasPrefix(msg.Contents, successPrefix) {
+				go func() {
+					for msg := range log {
+						PrintLogMsg(msg)
+					}
+				}()
 				break
 			} else if strings.HasPrefix(msg.Contents, failurePrefix) {
 				errMsg := msg.Contents[strings.Index(msg.Contents, "]")+2:]
-				return nil, errors.New(errMsg)
+				return errors.New(errMsg)
 			}
 		}
-		logs = append(logs, log)
 	}
-	return logs, nil
+	return nil
 }
 
 func topologicalSort(deployment *Deployment) [](*Service) {

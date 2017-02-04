@@ -14,8 +14,9 @@ import (
 	"github.com/urfave/cli"
 )
 
-const parserLocation = "frontend/target/scala-2.11/frontend.jar"
 const tempOutputFile = "temp.protobuf"
+
+var parserLocation string
 
 func main() {
 	app := cli.NewApp()
@@ -43,6 +44,8 @@ func main() {
 		},
 	}
 
+	// This is an ugly (and hopefully temporary) hack
+	parserLocation = os.Getenv("GOPATH") + "/src/github.com/jhkolb/raptor/frontend/target/scala-2.11/frontend.jar"
 	app.Run(os.Args)
 }
 
@@ -72,18 +75,15 @@ func actionSubmit(c *cli.Context) error {
 		os.Exit(1)
 	}
 
-	logs, err := backend.DeployConfig(entityFile, tempOutputFile, new(backend.FirstFitScheduler), true)
+	err = backend.DeployConfig(entityFile, tempOutputFile, new(backend.FirstFitScheduler))
 	os.Remove(tempOutputFile)
 	if err != nil {
 		fmt.Printf("%sDeployment failed: %v%s\n", ansi.ColorCode("red+b"), err, ansi.ColorCode("reset"))
 		os.Exit(1)
 	}
 
-	fmt.Printf("%sDeployment complete, tailing logs. Ctrl-C to quit.%s\n",
+	fmt.Printf("%sDeployment complete, continuing to tail logs. Ctrl-C to quit.%s\n",
 		ansi.ColorCode("green+b"), ansi.ColorCode("reset"))
-	for _, log := range logs {
-		go tailLog(log)
-	}
 	for {
 		time.Sleep(5 * time.Second)
 	}
